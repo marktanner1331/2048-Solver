@@ -1,1 +1,1 @@
-2048-Solver
+2048 solver
