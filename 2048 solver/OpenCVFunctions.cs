@@ -12,10 +12,12 @@ namespace _2048_solver
 {
     class OpenCVFunctions
     {
-        public static byte[] captureGridFromImage(Image<Bgr, byte> image)
+        public static byte[] captureGridFromImage(Image<Bgr, byte> image, Rectangle grid)
         {
-            Rectangle grid = findGridInImage(image);
-            
+            //Rectangle grid = findGridInImage(image);
+           
+           // CvInvoke.Imshow("test", image);
+            //CvInvoke.WaitKey(0);
             Rectangle[] squares = getSquares(grid);
             byte[] gridValues = new byte[16];
 
@@ -45,24 +47,34 @@ namespace _2048_solver
                 case "EDC53F":
                     return 10;
                 case "EDC850":
+                case "EDC950":
                     return 9;
                 case "EDCC61":
+                case "EDCC62":
                     return 8;
                 case "EDCF72":
+                case "EDD073":
                     return 7;
                 case "F65E3B":
+                case "F75F3B":
                     return 6;
                 case "F67C5F":
+                case "F77C5F":
                     return 5;
                 case "F59563":
+                case "F69664":
                     return 4;
                 case "F2B179":
+                case "F3B27A":
                     return 3;
                 case "EDE0C8":
+                case "EEE1C9":
                     return 2;
                 case "EEE4DA":
+                case "EDE3D9":
                     return 1;
                 case "CDC1B4":
+                case "BBADA0":
                     return 0;
                 default:
                     throw new Exception("unknown tile");
@@ -72,6 +84,9 @@ namespace _2048_solver
         private static uint findMostCommonValue(Image<Bgr, byte> image, Rectangle roi)
         {
             Dictionary<uint, uint> counters = new Dictionary<uint, uint>();
+            image.ROI = roi;
+            //CvInvoke.Imshow("tset", image);
+            //CvInvoke.WaitKey(0);
 
             for (int i = roi.Left; i < roi.Right; i++)
             {
@@ -94,6 +109,7 @@ namespace _2048_solver
             uint largestCount = 0;
             uint value = 0;
 
+            var k = counters.OrderByDescending(x => x.Value).ToList();
             foreach (KeyValuePair<uint, uint> pair in counters)
             {
                 if (pair.Value > largestCount)
@@ -138,7 +154,7 @@ namespace _2048_solver
             return squares;
         }
 
-        private static Rectangle findGridInImage(Image<Bgr, byte> image)
+        public static Rectangle findGridInImage(Image<Bgr, byte> image)
         {
             Image<Gray, byte> dest = new Image<Gray, byte>(image.Width, image.Height);
             dest = image.InRange(new Bgr(Color.FromArgb(250, 247, 238)), new Bgr(Color.FromArgb(251, 248, 239)));
@@ -163,19 +179,19 @@ namespace _2048_solver
                 //the bounding area will always be larger than the contour area
                 double areaRatio = boundingArea / contourArea;
 
-                if (areaRatio > 1.1)
-                    continue;
+                //if (areaRatio > 1.5)
+                //    continue;
 
                 if (r.Width > r.Height)
                 {
-                    if (r.Width / r.Height > 1.1)
+                    if ((float)r.Width / r.Height > 1.2)
                     {
                         continue;
                     }
                 }
                 else
                 {
-                    if (r.Height / r.Width > 1.1)
+                    if ((float)r.Height / r.Width > 1.2)
                     {
                         continue;
                     }

@@ -81,7 +81,7 @@ namespace _2048_solver
         {
             //annoyingly my screen is retina, which means there are twice as many pixels as reported by Screen.getBounds()
             //and i cant find a reliable way to detect this in c#
-            int pixelDensity = 2;
+            int pixelDensity = 3;
 
             Rectangle bounds = Screen.GetBounds(Point.Empty);
             bounds.Width *= pixelDensity;

@@ -81,6 +81,40 @@ namespace _2048_solver
             }
         }
 
+        /// <summary>
+        /// adds a 2 to the first free square after the offset
+        /// updates the offset to the square that was changed
+        /// returns false if no free square was found
+        /// for a first call, offset == null
+        /// if the offset is not null, then the value at the offset is set back to 0
+        /// i.e. ready for the next permutation
+        /// </summary>
+        public static unsafe bool tryAdd2Permutation(byte* grid, ref byte* offset)
+        {
+            if(offset == null)
+            {
+                offset = grid;
+            }
+            else
+            {
+                *offset = 0;
+                offset++;
+            }
+
+            while(offset != grid + 16)
+            {
+                if(*offset == 0)
+                {
+                    *offset = 2;
+                    return true;
+                }
+
+                offset++;
+            }
+
+            return false;
+        }
+
         public static unsafe void add2PermutationsAndCollapseInAllDirections(byte* src, byte* srcEnd, ref byte* dest)
         {
             while(src != srcEnd)
@@ -214,7 +248,7 @@ namespace _2048_solver
                 sb.AppendLine();
             }
 
-            Debug.WriteLine(sb.ToString());
+            Console.WriteLine(sb.ToString());
         }
 
         public static unsafe byte* cloneGrid(byte* src, ref byte* free)
@@ -225,16 +259,21 @@ namespace _2048_solver
             return free - 16;
         }
 
+        public static unsafe void cloneGrid(byte* src, byte* free)
+        {
+            memcpy((IntPtr)free, (IntPtr)src, gridSize);
+        }
+
         public static unsafe bool gridCanCollapse(byte* grid, Direction direction)
         {
-            if(direction == Direction.left)
-            {
-                int* temp = (int*)grid;
-                return leftCache[temp[0]] == temp[0] ||
-                       leftCache[temp[1]] == temp[1] ||
-                       leftCache[temp[2]] == temp[2] ||
-                       leftCache[temp[3]] == temp[3];
-            }
+            /* if(direction == Direction.left)
+             {
+                 int* temp = (int*)grid;
+                 return leftCache[temp[0]] == temp[0] ||
+                        leftCache[temp[1]] == temp[1] ||
+                        leftCache[temp[2]] == temp[2] ||
+                        leftCache[temp[3]] == temp[3];
+             }*/
 
             int delta;
             int delta2;
@@ -288,7 +327,7 @@ namespace _2048_solver
 
         public static unsafe void collapseGridInPlace(byte* grid, Direction direction)
         {
-            if(direction == Direction.left)
+            /*if(direction == Direction.left)
             {
                 int* row = (int*)grid;
                 *row = leftCache[*row];
@@ -315,7 +354,7 @@ namespace _2048_solver
                 row++;
 
                 return;
-            }
+            }*/
 
             switch (direction)
             {
@@ -476,6 +515,45 @@ namespace _2048_solver
         
         private static unsafe void collapseRow2(byte* grid, int delta)
         {
+            byte* start = grid;
+
+            for(int i = 1;i < 4;i++)
+            {
+                grid += delta;
+
+                //we have found a number we can move
+                if (*grid != 0)
+                {
+                    if(*start == 0)
+                    {
+                        *start = *grid;
+                        *grid = 0;
+                    }
+                    else if(*start == *grid)
+                    {
+                        *start += 1;
+                        *grid = 0;
+                        start += delta;
+                    }
+                    else
+                    {
+                        if(start + delta == grid)
+                        {
+                            start = grid;
+                        }
+                        else
+                        {
+                            start += delta;
+
+                            *start = *grid;
+                            *grid = 0;
+                        }
+                    }
+                }
+            }
+            return;
+
+
             //we dont ever move the first tile
             grid += delta;
 

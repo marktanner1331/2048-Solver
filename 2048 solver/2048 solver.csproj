@@ -76,6 +76,7 @@
     <Compile Include="AIFunctions.cs" />
     <Compile Include="Direction.cs" />
     <Compile Include="GridFunctions.cs" />
+    <Compile Include="GridStack.cs" />
     <Compile Include="OpenCVFunctions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

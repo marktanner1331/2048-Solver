@@ -24,6 +24,7 @@ namespace _2048_solver
 
         static unsafe void Main(string[] args)
         {
+            Rectangle grid;
             if (debug == false)
             {
                 Console.WriteLine("Press Enter to Start");
@@ -31,24 +32,33 @@ namespace _2048_solver
 
                 WindowsFunctions.BringMainWindowToFront("chrome");
                 Thread.Sleep(500);
+
+                Console.WriteLine("Capturing Screen");
+                Image<Bgr, byte> screenshot = WindowsFunctions.captureScreen();
+
+                Console.WriteLine("Finding Grid");
+                grid = OpenCVFunctions.findGridInImage(screenshot);
             }
 
-            GridFunctions.initializeCaches();
-
-            int size = 48000000;
-
-            byte* buffer1 = (byte*)Marshal.AllocHGlobal(sizeof(byte) * 16 * size);
-            byte* end1 = buffer1 + 16 * size;
-
-            byte* buffer2= (byte*)Marshal.AllocHGlobal(sizeof(byte) * 16 * size);
-            byte* end2 = buffer1 + 16 * size;
+            //GridFunctions.initializeCaches();
 
             while (debug || Path.GetFileNameWithoutExtension(WindowsFunctions.GetActiveProcessFileName()).ToLower() == "chrome")
             {
                 byte[] managedValues;
                 if (debug)
                 {
-                    managedValues = new byte[]{ 4, 5, 4, 3, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 1, 0 };
+                    //managedValues = new byte[] { 4, 5, 4, 3, 0, 0, 0, 3, 0, 0, 0, 1, 0, 0, 1, 0 };
+                    managedValues = new byte[] {
+                        5, 4, 3, 3,
+                        0, 0, 0, 3,
+                        0, 0, 0, 1,
+                        0, 0, 1, 0 };
+
+                    //managedValues = new byte[] {
+                    //    0, 1, 2, 2,
+                    //    0, 0, 0, 0,
+                    //    0, 0, 0, 0,
+                    //    0, 0, 0, 0 };
                 }
                 else
                 {
@@ -56,9 +66,9 @@ namespace _2048_solver
                     Image<Bgr, byte> screenshot = WindowsFunctions.captureScreen();
 
                     Console.WriteLine("Finding Grid");
-                    managedValues = OpenCVFunctions.captureGridFromImage(screenshot);
+                    managedValues = OpenCVFunctions.captureGridFromImage(screenshot, grid);
                 }
-                
+
                 Stopwatch sw;
                 if (debug)
                 {
@@ -66,64 +76,18 @@ namespace _2048_solver
                     sw.Start();
                 }
 
-                byte* gridValues = (byte*)Marshal.AllocHGlobal(sizeof(byte) * 16 * size);
+                GridStack stack = new GridStack(6);
 
                 //we copy the first grid into the buffer
+                //maybe move this into the stack
                 fixed (byte* temp = managedValues)
                 {
-                    GridFunctions.memcpy((IntPtr)gridValues, (IntPtr)temp, new UIntPtr(16 * sizeof(byte)));
+                    GridFunctions.memcpy((IntPtr)stack.current, (IntPtr)temp, new UIntPtr(16 * sizeof(byte)));
                 }
+                //GridFunctions.printGrid(stack.current);
 
-                
-                List<KeyValuePair<Direction, double>> scores = new List<KeyValuePair<Direction, double>>();
-
-                foreach (Direction direction in Enum.GetValues(typeof(Direction)))
-                {
-                    Console.WriteLine("Calculating: " + direction.ToString());
-
-                    //hint: buffer is not just a pointer to the buffer, its also a pointer to the first grid
-                    //in the buffer
-                    if (GridFunctions.gridCanCollapse(gridValues, direction) == false)
-                    {
-                        continue;
-                    }
-
-                    byte* srcBuffer = buffer1;
-                    byte* srcEnd = buffer1;
-                    byte* destBuffer = buffer2;
-                    byte* destEnd = buffer2;
-
-                    byte* clone = GridFunctions.cloneGrid(gridValues, ref srcEnd);
-                    GridFunctions.collapseGridInPlace(clone, direction);
-
-                    for (int i = 0; i < 4; i++)
-                    {
-                        //we read permutations from the src, and write them to the dest
-                        GridFunctions.add2PermutationsAndCollapseInAllDirections(srcBuffer, srcEnd, ref destEnd);
-
-                        //now we swap round teh src and dest for the next iteration
-                        byte* temp = srcBuffer;
-
-                        srcBuffer = destBuffer;
-                        srcEnd = destEnd;
-
-                        destBuffer = temp;
-                        destEnd = temp;
-                    }
-
-                    double averageScore = GridFunctions.getAverageScoreForGrids(srcBuffer, srcEnd, AIFunctions.getScoreForGrid1);
-                    Console.WriteLine("Score: " + averageScore);
-
-                    scores.Add(new KeyValuePair<Direction, double>(direction, averageScore));
-                }
-
-                //we want to choose the direction with the highest score
-                scores = scores.OrderBy(x => x.Value).ToList();
-                scores = scores.GroupBy(x => x.Value).Last().ToList();
-
-                //if there are multiple with the same score, then we choose one at random
-                Direction d = scores[new Random().Next(0, scores.Count)].Key;
-                Console.WriteLine("Performing Move: " + d.ToString());
+                var outcome = runPermutation(stack, 1);
+                Console.WriteLine(outcome.Key);
 
                 if (debug)
                 {
@@ -132,15 +96,73 @@ namespace _2048_solver
                 }
                 else
                 {
-                    WindowsFunctions.performMove(d);
+                    WindowsFunctions.performMove(outcome.Key);
                     Thread.Sleep(500);
                 }
 
-                Marshal.FreeHGlobal((IntPtr)gridValues);
+                ///move this to the stack
+                //Marshal.FreeHGlobal((IntPtr)gridValues);
             }
 
-            Marshal.FreeHGlobal((IntPtr)buffer1);
-            Marshal.FreeHGlobal((IntPtr)buffer2);
+            string s = Path.GetFileNameWithoutExtension(WindowsFunctions.GetActiveProcessFileName()).ToLower();
+        }
+
+        private static unsafe KeyValuePair<Direction, int> runPermutation(GridStack stack, int ttl)
+        {
+            //GridFunctions.printGrid(stack.current);
+            Dictionary<Direction, int> scores = new Dictionary<Direction, int>();
+
+            foreach (Direction direction in Enum.GetValues(typeof(Direction)))
+            {
+                //hint: buffer is not just a pointer to the buffer, its also a pointer to the first grid
+                //in the buffer
+                if (GridFunctions.gridCanCollapse(stack.current, direction) == false)
+                {
+                    continue;
+                }
+
+                stack.pushCurrent();
+                //GridFunctions.printGrid(stack.current);
+                GridFunctions.collapseGridInPlace(stack.current, direction);
+                //GridFunctions.printGrid(stack.current);
+                if (ttl == 0)
+                {
+                    scores.Add(direction, AIFunctions.getScoreForGrid3((IntPtr)stack.current));
+                    stack.pop();
+                    continue;
+                }
+
+                byte* currentSquare = null;
+                List<int> temp = new List<int>();
+                while (GridFunctions.tryAdd2Permutation(stack.current, ref currentSquare))
+                {
+                    var score = runPermutation(stack, ttl - 1);
+                    temp.Add(score.Value);
+                }
+
+                stack.pop();
+
+                if (temp.Count == 0)
+                {
+                    scores.Add(direction, 0);
+                }
+                else
+                {
+                    ///we choose the permutation that leads to the worst outcome
+                    //scores.Add(direction, temp.Sum() / temp.Count);
+                    scores.Add(direction, temp.OrderBy(x => x).First());
+                }
+            }
+
+            //scores.ToList().ForEach(x => Console.WriteLine(x));
+
+            ///we choose the direction that gives the best square
+            if(scores.Count == 0)
+            {
+                return new KeyValuePair<Direction, int>(Direction.left, -1);
+            }
+            var s = scores.OrderByDescending(x => x.Value).First();
+            return s;
         }
     }
 }

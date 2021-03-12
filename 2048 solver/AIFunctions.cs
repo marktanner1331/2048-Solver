@@ -42,5 +42,27 @@ namespace _2048_solver
             
             return score;
         }
+
+        public static unsafe int getScoreForGrid2(IntPtr gridPtr)
+        {
+            int score = 0;
+            byte* grid = (byte*)gridPtr;
+
+            for (int i = 0; i < 16; i++)
+            {
+                score += grid[i] * grid[i];
+            }
+
+            return score = getScoreForGrid1(gridPtr);
+        }
+
+        public static unsafe int getScoreForGrid3(IntPtr gridPtr)
+        {
+            int score = 0;
+            byte* grid = (byte*)gridPtr;
+
+            int current = 0;
+            int[] delta = new int[] { };
+        }
     }
 }
