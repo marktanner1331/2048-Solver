@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace _2048_Solver.Solver
 {
-    public unsafe class Solver4 : ISolver
+    public unsafe class Solver5 : ISolver
     {
         private byte* data;
         private byte* current;
@@ -18,7 +18,7 @@ namespace _2048_Solver.Solver
         public const int UP = 2;
         public const int DOWN = 3;
 
-        public Solver4()
+        public Solver5()
         {
             this.data = (byte*)Marshal.AllocHGlobal(sizeof(byte) * 16 * 8);
         }
@@ -92,9 +92,9 @@ namespace _2048_Solver.Solver
             int[] scores = new int[permutations];
             current += 16;
 
-            foreach (Direction subDirection in Enum.GetValues(typeof(Direction)))
+            foreach (var subDirection in new[] {(Direction.left, Direction.right), (Direction.up, Direction.down) })
             {
-                Permutator permutator = new Permutator(grid, subDirection);
+                Permutator permutator = new Permutator(grid, subDirection.Item1);
                 Dictionary<uint, int> scoreCache = new Dictionary<uint, int>();
 
                 int k = 0;
@@ -107,14 +107,22 @@ namespace _2048_Solver.Solver
                     }
                     else
                     {
+                        int score1;
+                        int score2;
                         if (depth == 1)
                         {
-                            score = FinalScoreForGrid(current);
+                            score1 = FinalScoreForGrid(current);
+                            GridFunctions.ReflectGrid(current, subDirection.Item2);
+                            score2 = FinalScoreForGrid(current);
                         }
                         else
                         {
-                            score = ScoreForGrid(current, depth - 1);
+                            score1 = ScoreForGrid(current, depth - 1);
+                            GridFunctions.ReflectGrid(current, subDirection.Item2);
+                            score2 = ScoreForGrid(current, depth - 1);
                         }
+
+                        score = Math.Max(score1, score2);
 
                         scoreCache.Add(permutationHash, score);
                     }

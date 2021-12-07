@@ -162,6 +162,7 @@ namespace _2048_Solver.Solver
 
                 grid++;
             }
+            
 
             return false;
         }
@@ -842,6 +843,65 @@ namespace _2048_Solver.Solver
                             *start = *grid;
                             *grid = 0;
                         }
+                    }
+                }
+            }
+        }
+
+        public static unsafe void ReflectGrid(byte* grid, Direction direction)
+        {
+            switch (direction)
+            {
+                case Direction.left:
+                    ReflectRow(grid, 1);
+                    ReflectRow(grid + 4, 1);
+                    ReflectRow(grid + 8, 1);
+                    ReflectRow(grid + 12, 1);
+                    return;
+                case Direction.right:
+                    ReflectRow(grid + 3, -1);
+                    ReflectRow(grid + 7, -1);
+                    ReflectRow(grid + 11, -1);
+                    ReflectRow(grid + 15, -1);
+                    return;
+                case Direction.up:
+                    ReflectRow(grid, 4);
+                    ReflectRow(grid + 1, 4);
+                    ReflectRow(grid + 2, 4);
+                    ReflectRow(grid + 3, 4);
+                    return;
+                case Direction.down:
+                    ReflectRow(grid + 12, -4);
+                    ReflectRow(grid + 13, -4);
+                    ReflectRow(grid + 14, -4);
+                    ReflectRow(grid + 15, -4);
+                    return;
+            }
+        }
+        
+        public static unsafe void ReflectRow(byte* grid, int delta)
+        {
+            byte* start = grid;
+
+            for (int i = 1; i < 4; i++)
+            {
+                grid += delta;
+
+                //we have found a number we can move
+                if (*grid != 0)
+                {
+                    if (*start == 0)
+                    {
+                        *start = *grid;
+                        *grid = 0;
+                        start += delta;
+                    }
+                }
+                else
+                {
+                    if (*start != 0)
+                    {
+                        start = grid;
                     }
                 }
             }

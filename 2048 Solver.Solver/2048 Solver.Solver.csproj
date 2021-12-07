@@ -53,6 +53,7 @@
     <Compile Include="Solver1.cs" />
     <Compile Include="Solver3.cs" />
     <Compile Include="Solver4.cs" />
+    <Compile Include="Solver5.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

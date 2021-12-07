@@ -11,7 +11,7 @@ namespace _2048_Solver.Runner
 {
     internal class Program
     {
-        private static ISolver solver = new Solver4();
+        private static ISolver solver = new Solver5();
 
         static unsafe void Main(string[] args)
         {
