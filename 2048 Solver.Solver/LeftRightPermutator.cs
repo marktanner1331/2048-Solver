@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace _2048_Solver.Solver
 {
-    public unsafe class Permutator: IDisposable
+    public unsafe class LeftRightPermutator: IDisposable
     {
         public byte* grid;
         byte* collapsedGrid;
@@ -22,7 +22,7 @@ namespace _2048_Solver.Solver
 
         bool[] rowNeedsToCollapse = new bool[4];
 
-        public Permutator(byte* grid, Direction direction)
+        public LeftRightPermutator(byte* grid, Direction direction)
         {
             this.grid = GridFunctions.CreateGrid();
             GridFunctions.CloneGrid(grid, this.grid);
@@ -40,7 +40,7 @@ namespace _2048_Solver.Solver
             bool[] didCollapse = new bool[4];
             for (int i = 0; i < 4; i++)
             {
-                didCollapse[i] = !GridFunctions.RowsAreEqual(grid + offset + i * rowDelta, collapsedGrid + offset + i * rowDelta, columnDelta);
+                didCollapse[i] = !GridFunctions.RowsAreEqual(grid + (i << 2), collapsedGrid + (i << 2), 1);
             }
 
             for (int i = 0; i < 4; i++)
@@ -70,18 +70,11 @@ namespace _2048_Solver.Solver
                 {
                     if(grid[currentRow * 4 + currentColumn] == 0)
                     {
-                        int mappedRowStart;
-                        if(direction == Direction.left || direction == Direction.right)
-                        {
-                            mappedRowStart = offset + currentRow * rowDelta;
-                        }
-                        else
-                        {
-                            mappedRowStart = offset + currentColumn * rowDelta;
-                        }
+                        int mappedRowStart = offset + currentRow * rowDelta;
 
                         GridFunctions.CloneGrid(collapsedGrid, output);
-                        GridFunctions.CloneRow(grid + mappedRowStart, output + mappedRowStart, columnDelta);
+                        ((uint*)output)[currentRow] = ((uint*)grid)[currentRow];
+                        //GridFunctions.CloneRow(grid + mappedRowStart, output + mappedRowStart, columnDelta);
 
                         output[currentRow * 4 + currentColumn] = 1;
                         didCollapse = GridFunctions.collapseRow3(output + mappedRowStart, columnDelta);
@@ -93,21 +86,12 @@ namespace _2048_Solver.Solver
 
                         if(!didCollapse)
                         {
-                            if (direction == Direction.left || direction == Direction.right)
+                            if(rowNeedsToCollapse[currentRow] == false)
                             {
-                                if(rowNeedsToCollapse[currentRow] == false)
-                                {
-                                    didCollapse = true;
-                                }
-                            }
-                            else
-                            {
-                                if (rowNeedsToCollapse[currentColumn] == false)
-                                {
-                                    didCollapse = true;
-                                }
+                                didCollapse = true;
                             }
                         }
+
                         currentColumn++;
                         return true;
                     }

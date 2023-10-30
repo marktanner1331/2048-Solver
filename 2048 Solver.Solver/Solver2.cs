@@ -14,7 +14,7 @@ namespace _2048_Solver.Solver
             GridStack stack = new GridStack(128);
             GridFunctions.CloneGrid(grid, stack.current);
 
-            Dictionary<Direction, int> scores = new Dictionary<Direction, int>();
+            Dictionary<Direction, uint> scores = new Dictionary<Direction, uint>();
 
             foreach (Direction direction in Enum.GetValues(typeof(Direction)))
             {
@@ -37,20 +37,20 @@ namespace _2048_Solver.Solver
             return scores.OrderByDescending(x => x.Value).First().Key;
         }
 
-        private unsafe int ScoreForGrid(GridStack stack, int depth)
+        private unsafe uint ScoreForGrid(GridStack stack, int depth)
         {
-            int permutations = GridFunctions.CountEmptySquares(stack.current);
+            uint permutations = GridFunctions.CountEmptySquares(stack.current);
             if(permutations == 0)
             {
                 return 0;
             }
 
             int startIndex = 0;
-            int score = int.MaxValue;
+            uint score = int.MaxValue;
             for (int i = 0; i < permutations; i++)
             {
                 stack.pushCurrent();
-                GridFunctions.TryAddPermutation(stack.current, ref startIndex);
+                GridFunctions.AddPermutation(stack.current, ref startIndex);
                 //if(!success)
                 //{
                 //    //GridFunctions.printGrid(grid);
@@ -61,7 +61,7 @@ namespace _2048_Solver.Solver
 
                 startIndex++;
 
-                int subScore = -1;
+                uint subScore = 0;
                 foreach (Direction subDirection in Enum.GetValues(typeof(Direction)))
                 {
                     stack.pushCurrent();
@@ -86,7 +86,7 @@ namespace _2048_Solver.Solver
             return score;
         }
 
-        private unsafe int FinalScoreForGrid(byte* grid)
+        private unsafe uint FinalScoreForGrid(byte* grid)
         {
             //Console.WriteLine("\tEmpty: " + GridFunctions.CountEmptySquares(grid));
             //Console.WriteLine("\tsum values: " + GridFunctions.SumValuesInGrid(grid));

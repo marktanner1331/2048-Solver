@@ -22,6 +22,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -45,8 +46,10 @@
   <ItemGroup>
     <Compile Include="Direction.cs" />
     <Compile Include="GridFunctions.cs" />
+    <Compile Include="GridFunctions2.cs" />
     <Compile Include="GridStack.cs" />
     <Compile Include="ISolver.cs" />
+    <Compile Include="LeftRightPermutator.cs" />
     <Compile Include="Permutator.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Solver2.cs" />
@@ -54,6 +57,15 @@
     <Compile Include="Solver3.cs" />
     <Compile Include="Solver4.cs" />
     <Compile Include="Solver5.cs" />
+    <Compile Include="Solver6.cs" />
+    <Compile Include="Solver7.cs" />
+    <Compile Include="Solver7_Fast.cs" />
+    <Compile Include="Solver8.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="GridFunctions.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

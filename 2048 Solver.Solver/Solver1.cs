@@ -17,14 +17,14 @@ namespace _2048_Solver.Solver
                 grids[i] = GridFunctions.CloneGrid(grid);
             }
 
-            Dictionary<Direction, int> scores = new Dictionary<Direction, int>();
+            Dictionary<Direction, uint> scores = new Dictionary<Direction, uint>();
 
             int j = 0;
             foreach(Direction direction in Enum.GetValues(typeof(Direction)))
             {
                 if(GridFunctions.GridCanCollapse(grid, direction) == false)
                 {
-                    scores[direction] = -1;
+                    scores[direction] = 0;
                     continue;
                 }
 

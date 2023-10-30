@@ -11,7 +11,7 @@ namespace _2048_Solver.Runner
 {
     internal class Program
     {
-        private static ISolver solver = new Solver5();
+        private static ISolver solver = new Solver7();
 
         static unsafe void Main(string[] args)
         {
@@ -52,15 +52,19 @@ namespace _2048_Solver.Runner
                 //GridFunctions.printGrid(grid);
                 //Console.ReadLine();
 
-
                 if (GridFunctions.GridCanCollapse(grid) == false)
                 {
                     break;
                 }
 
                 Direction direction = solver.Solve(grid);
+                //if(GridFunctions.GridCanCollapse(grid, direction) == false)
+                //{
+                //    throw new Exception();
+                //}
 
                 GridFunctions.CollapseGridInPlace(grid, direction);
+                //Console.WriteLine(GridFunctions.ConvertGridToIntArray(grid).Sum());
 
                 //GridFunctions.printGrid(grid);
                 //Console.ReadLine();

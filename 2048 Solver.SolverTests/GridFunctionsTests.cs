@@ -9,6 +9,7 @@ using _2048_solver.Solver;
 using _2048_Solver.SolverTests;
 using System.Runtime.InteropServices;
 using System.Diagnostics;
+using System.IO;
 
 namespace _2048_Solver.Solver.Tests
 {
@@ -31,7 +32,7 @@ namespace _2048_Solver.Solver.Tests
         {
             byte* grid = GridFunctions.CreateEmptyGrid();
             int startIndex = 0;
-            GridFunctions.TryAddPermutation(grid, ref startIndex);
+            GridFunctions.AddPermutation(grid, ref startIndex);
 
             int sum = GridFunctions.SumValuesInGrid(grid);
             Assert.AreEqual(2, sum);
@@ -44,8 +45,8 @@ namespace _2048_Solver.Solver.Tests
         {
             byte* grid = GridFunctions.CreateEmptyGrid();
             int startIndex = 0;
-            GridFunctions.TryAddPermutation(grid, ref startIndex);
-            GridFunctions.TryAddPermutation(grid, ref startIndex);
+            GridFunctions.AddPermutation(grid, ref startIndex);
+            GridFunctions.AddPermutation(grid, ref startIndex);
 
             int sum = GridFunctions.SumValuesInGrid(grid);
             Assert.AreEqual(4, sum);
@@ -276,6 +277,16 @@ namespace _2048_Solver.Solver.Tests
             }
             while (permutator.Next());
 
+        }
+
+        class DebugWriter : TextWriter
+        {
+            public override Encoding Encoding => Encoding.UTF8;
+
+            public override void WriteLine(string value)
+            {
+                Debug.WriteLine(value);
+            }
         }
     }
 }

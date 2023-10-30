@@ -33,14 +33,20 @@ namespace _2048_Solver.Solver
             return newGrids;
         }
 
-        /// <summary>
-        /// Adds a '2' in the first free square
-        /// </summary>
-        /// <param name="grid">The grid to change</param>
-        /// <param name="startIndex">The square to start looking from</param>
-        /// <param name="setIndex">The index of the square that was changed</param>
-        /// <returns>true if there was a free square to update, false otherwise</returns>
-        public static unsafe bool TryAddPermutation(byte* grid, ref int startIndex)
+        internal static unsafe bool RowsAreEqual(byte* row1, byte* row2, int columnDelta)
+        {
+            for (int i = 0; i < 4; i++)
+            {
+                if(row1[i * columnDelta] != row2[i * columnDelta])
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static unsafe void AddPermutation(byte* grid, ref int startIndex)
         {
             grid += startIndex;
             while (startIndex != 16)
@@ -48,14 +54,12 @@ namespace _2048_Solver.Solver
                 if (*grid == 0)
                 {
                     *grid = 1;
-                    return true;
+                    return;
                 }
 
                 grid++;
                 startIndex++;
             }
-
-            return false;
         }
 
         public static unsafe void printGrid(byte* grid)
@@ -131,9 +135,9 @@ namespace _2048_Solver.Solver
 
         public static unsafe void AddRandomPermutation(byte* grid)
         {
-            int numEmpty = CountEmptySquares(grid);
+            uint numEmpty = CountEmptySquares(grid);
 
-            int randomIndex = random.Next(0, numEmpty);
+            int randomIndex = random.Next(0, (int)numEmpty);
 
             int index = 0;
             for (int i = 0; i < 16; i++)
@@ -148,6 +152,23 @@ namespace _2048_Solver.Solver
                     index++;
                 }
             }
+        }
+
+        internal static unsafe bool IndexOf(byte* cache, int cacheCount, byte* current, ref uint index)
+        {
+            for (uint i = 0; i < cacheCount; i++)
+            {
+                if(GridsAreEqual(cache, current))
+                {
+                    index = i;
+                    return true;
+                }
+
+                cache += 16;
+            }
+
+            index = 0;
+            return false;
         }
 
         public static unsafe bool HasEmptySquares(byte* grid)
@@ -167,16 +188,16 @@ namespace _2048_Solver.Solver
             return false;
         }
 
-        public static unsafe int SquareSum(byte* grid)
+        public static unsafe uint SquareSum(byte* grid)
         {
-            int sum = 0;
+            uint sum = 0;
             byte* end = grid + 16;
 
             while (grid != end)
             {
                 if (*grid != 0)
                 {
-                    sum += 1 << (*grid << 1);
+                    sum += (uint)(1 << (*grid << 1));
                 }
 
                 grid++;
@@ -186,9 +207,9 @@ namespace _2048_Solver.Solver
             return sum;
         }
 
-        public static unsafe int CountEmptySquares(byte* grid)
+        public static unsafe uint CountEmptySquares(byte* grid)
         {
-            int numEmpty = 0;
+            uint numEmpty = 0;
             byte* end = grid + 16;
 
             while (grid != end)
@@ -325,16 +346,16 @@ namespace _2048_Solver.Solver
             Marshal.FreeHGlobal((IntPtr)grid);
         }
 
-        public static unsafe int SumValuesInGrid(byte* grid)
+        public static unsafe uint SumValuesInGrid(byte* grid)
         {
-            int sum = 0;
+            uint sum = 0;
             byte* end = grid + 16;
 
             while (grid != end)
             {
                 if (*grid != 0)
                 {
-                    sum += 1 << *grid;
+                    sum += (uint)(1 << *grid);
                 }
 
                 grid++;
@@ -371,6 +392,12 @@ namespace _2048_Solver.Solver
             ((UInt64*)dest)[1] = ((UInt64*)source)[1];
 
             //memcpy((IntPtr)dest, (IntPtr)source, 16);
+        }
+
+        public static unsafe bool GridsAreEqual(byte* a, byte* b)
+        {
+            return ((UInt64*)a)[0] == ((UInt64*)b)[0]
+                && ((UInt64*)a)[1] == ((UInt64*)b)[1];
         }
 
         public static void GetDeltas(Direction direction, out int offset, out int rowDelta, out int columnDelta)
@@ -446,34 +473,37 @@ namespace _2048_Solver.Solver
             *dest = *source;
         }
 
-        public static unsafe void CollapseGridInPlace(byte* grid, Direction direction)
+        public static unsafe bool CollapseGridInPlace(byte* grid, Direction direction)
         {
+            bool success = false;
             switch (direction)
             {
                 case Direction.left:
-                    collapseRow3(grid, 1);
-                    collapseRow3(grid + 4, 1);
-                    collapseRow3(grid + 8, 1);
-                    collapseRow3(grid + 12, 1);
-                    return;
+                    success |= collapseRow3(grid, 1);
+                    success |= collapseRow3(grid + 4, 1);
+                    success |= collapseRow3(grid + 8, 1);
+                    success |= collapseRow3(grid + 12, 1);
+                    return success;
                 case Direction.right:
-                    collapseRow3(grid + 3, -1);
-                    collapseRow3(grid + 7, -1);
-                    collapseRow3(grid + 11, -1);
-                    collapseRow3(grid + 15, -1);
-                    return;
+                    success |= collapseRow3(grid + 3, -1);
+                    success |= collapseRow3(grid + 7, -1);
+                    success |= collapseRow3(grid + 11, -1);
+                    success |= collapseRow3(grid + 15, -1);
+                    return success;
                 case Direction.up:
-                    collapseRow3(grid, 4);
-                    collapseRow3(grid + 1, 4);
-                    collapseRow3(grid + 2, 4);
-                    collapseRow3(grid + 3, 4);
-                    return;
+                    success |= collapseRow3(grid, 4);
+                    success |= collapseRow3(grid + 1, 4);
+                    success |= collapseRow3(grid + 2, 4);
+                    success |= collapseRow3(grid + 3, 4);
+                    return success;
                 case Direction.down:
-                    collapseRow3(grid + 12, -4);
-                    collapseRow3(grid + 13, -4);
-                    collapseRow3(grid + 14, -4);
-                    collapseRow3(grid + 15, -4);
-                    return;
+                    success |= collapseRow3(grid + 12, -4);
+                    success |= collapseRow3(grid + 13, -4);
+                    success |= collapseRow3(grid + 14, -4);
+                    success |= collapseRow3(grid + 15, -4);
+                    return success;
+                default:
+                    throw new Exception();
             }
         }
 
@@ -518,7 +548,7 @@ namespace _2048_Solver.Solver
             return;
         }
 
-        public static unsafe void collapseRow3(byte* a, int delta)
+        public static unsafe bool collapseRow3(byte* a, int delta)
         {
             byte* b = a + delta;
             byte* c = b + delta;
@@ -534,6 +564,10 @@ namespace _2048_Solver.Solver
                         {
                             *a = *d;
                             *d = 0;
+                        }
+                        else
+                        {
+                            return false;
                         }
                     }
                     else
@@ -618,6 +652,10 @@ namespace _2048_Solver.Solver
                             *b = *d;
                             *d = 0;
                         }
+                        else
+                        {
+                            return false;
+                        }
                     }
                     else
                     {
@@ -672,6 +710,10 @@ namespace _2048_Solver.Solver
                                 (*a)++;
                                 *b = 0;
                             }
+                            else
+                            {
+                                return false;
+                            }
                         }
                         else
                         {
@@ -707,6 +749,10 @@ namespace _2048_Solver.Solver
                                 (*b)++;
                                 *c = 0;
                             }
+                            else
+                            {
+                                return false;
+                            }
                         }
                         else
                         {
@@ -737,10 +783,16 @@ namespace _2048_Solver.Solver
                                 (*c)++;
                                 *d = 0;
                             }
+                            else
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
             }
+
+            return true;
         }
         
         public static unsafe void collapseRow2(byte* grid, int delta)
@@ -843,65 +895,6 @@ namespace _2048_Solver.Solver
                             *start = *grid;
                             *grid = 0;
                         }
-                    }
-                }
-            }
-        }
-
-        public static unsafe void ReflectGrid(byte* grid, Direction direction)
-        {
-            switch (direction)
-            {
-                case Direction.left:
-                    ReflectRow(grid, 1);
-                    ReflectRow(grid + 4, 1);
-                    ReflectRow(grid + 8, 1);
-                    ReflectRow(grid + 12, 1);
-                    return;
-                case Direction.right:
-                    ReflectRow(grid + 3, -1);
-                    ReflectRow(grid + 7, -1);
-                    ReflectRow(grid + 11, -1);
-                    ReflectRow(grid + 15, -1);
-                    return;
-                case Direction.up:
-                    ReflectRow(grid, 4);
-                    ReflectRow(grid + 1, 4);
-                    ReflectRow(grid + 2, 4);
-                    ReflectRow(grid + 3, 4);
-                    return;
-                case Direction.down:
-                    ReflectRow(grid + 12, -4);
-                    ReflectRow(grid + 13, -4);
-                    ReflectRow(grid + 14, -4);
-                    ReflectRow(grid + 15, -4);
-                    return;
-            }
-        }
-        
-        public static unsafe void ReflectRow(byte* grid, int delta)
-        {
-            byte* start = grid;
-
-            for (int i = 1; i < 4; i++)
-            {
-                grid += delta;
-
-                //we have found a number we can move
-                if (*grid != 0)
-                {
-                    if (*start == 0)
-                    {
-                        *start = *grid;
-                        *grid = 0;
-                        start += delta;
-                    }
-                }
-                else
-                {
-                    if (*start != 0)
-                    {
-                        start = grid;
                     }
                 }
             }

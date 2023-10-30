@@ -8,19 +8,25 @@ using System.Threading.Tasks;
 
 namespace _2048_Solver.Solver
 {
-    public unsafe class Solver4 : ISolver
+    
+    public unsafe class Solver8 : ISolver
     {
+        delegate bool GetPermutation(byte* grid, out uint hash, out bool didCollapse);
+
         private byte* data;
         private byte* current;
+
+        private uint* cache;
 
         public const int LEFT = 0;
         public const int RIGHT = 1;
         public const int UP = 2;
         public const int DOWN = 3;
 
-        public Solver4()
+        public Solver8()
         {
             this.data = (byte*)Marshal.AllocHGlobal(sizeof(byte) * 16 * 8);
+            this.cache = (uint*)Marshal.AllocHGlobal(sizeof(uint) * 128);
         }
 
         public unsafe Direction Solve(byte* grid)
@@ -45,13 +51,13 @@ namespace _2048_Solver.Solver
                 GridFunctions.CollapseGridInPlace(tempGrid, (Direction)direction);
 
                 uint permutations = GridFunctions.CountEmptySquares(grid);
-                const int depth = 2;
-                
+                const int depth = 1;
+
                 if (permutations > 5)
                 {
                     scores[direction] = ScoreForGrid(tempGrid, depth);
                 }
-                else if(permutations < 3)
+                else if (permutations < 3)
                 {
                     scores[direction] = ScoreForGrid(tempGrid, depth + 2);
                 }
@@ -59,7 +65,7 @@ namespace _2048_Solver.Solver
                 {
                     scores[direction] = ScoreForGrid(tempGrid, depth + 1);
                 }
-                
+
                 //Console.WriteLine("\tScore: " + scores[direction]);
             }
 
@@ -70,12 +76,18 @@ namespace _2048_Solver.Solver
 
             for (int i = 0; i < 4; i++)
             {
-                if(scores[i] > max)
+                if (scores[i] > max)
                 {
                     max = scores[i];
                     maxDir = (Direction)i;
                 }
             }
+
+            //if(max == 0)
+            //{
+            //    GridFunctions.printGrid(grid);
+            //    throw new Exception();
+            //}
 
             return maxDir;
             //return scores.OrderByDescending(x => x.Value).First().Key;
@@ -92,18 +104,49 @@ namespace _2048_Solver.Solver
             uint[] scores = new uint[permutations];
             current += 16;
 
-            foreach (Direction subDirection in Enum.GetValues(typeof(Direction)))
+            //only iterating for LEFT and UP
+            for (int subDirection = 0; subDirection < 4; subDirection++)
             {
-                Permutator permutator = new Permutator(grid, subDirection);
-                Dictionary<uint, uint> scoreCache = new Dictionary<uint, uint>();
+                int startIndex = 0;
 
-                int k = 0;
-                while (permutator.TryGetPermutation(current, out uint permutationHash, out _))
+                int cacheCount = 0;
+                uint[] cachedScores = new uint[permutations];
+
+                GetPermutation getPermutation;
+                if(subDirection < 2)
                 {
+                    LeftRightPermutator permutator = new LeftRightPermutator(grid, (Direction)subDirection);
+                    getPermutation = permutator.TryGetPermutation;
+                }
+                else
+                {
+                    Permutator permutator = new Permutator(grid, (Direction)subDirection);
+                    getPermutation = permutator.TryGetPermutation;
+                }
+
+                for (int i = 0; i < permutations; i++)
+                {
+                    GridFunctions.CloneGrid(grid, current);
+
+                    //if (!success)
+                    //{
+                    //    GridFunctions.printGrid(grid);
+                    //    GridFunctions.CloneGrid(grid, current);
+                    //    GridFunctions.printGrid(current);
+                    //    GridFunctions.TryAddPermutation(current, ref startIndex);
+                    //    throw new Exception();
+                    //}
+
+                    getPermutation(current, out uint hash, out bool couldCollapse);
+
                     uint score;
-                    if (scoreCache.ContainsKey(permutationHash))
+                    if(couldCollapse == false)
                     {
-                        score = scoreCache[permutationHash];
+                        score = FinalScoreForGrid(current);
+                    }
+                    else if (IndexOf(cache, cacheCount, hash, out int index))
+                    {
+                        score = cachedScores[index];
                     }
                     else
                     {
@@ -113,49 +156,44 @@ namespace _2048_Solver.Solver
                         }
                         else
                         {
+                            cache += cacheCount;
                             score = ScoreForGrid(current, depth - 1);
+                            cache -= cacheCount;
                         }
 
-                        scoreCache.Add(permutationHash, score);
+                        cache[cacheCount] = hash;
+                        cachedScores[cacheCount] = score;
+                        cacheCount++;
                     }
 
-                    scores[k] = Math.Max(scores[k], score);
-
-                    k++;
+                    scores[i] = Math.Max(scores[i], score);
+                    startIndex++;
                 }
             }
 
             current -= 16;
-            //GridFunctions.FreeGrid(tempGrid);
 
             return (uint)scores.Average(x => x);
         }
 
+        private unsafe bool IndexOf(uint* array, int count, uint value, out int index)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if(array[i] == value)
+                {
+                    index = i;
+                    return true;
+                }
+            }
+
+            index = 0;
+            return false;
+        }
+
         private unsafe uint FinalScoreForGrid(byte* grid)
         {
-            //Console.WriteLine("\tEmpty: " + GridFunctions.CountEmptySquares(grid));
-            //Console.WriteLine("\tsum values: " + GridFunctions.SumValuesInGrid(grid));
-            //return (ulong)GridFunctions.CountEmptySquares(grid);
-            //return (ulong)(GridFunctions.CountEmptySquares(grid) + GridFunctions.SumValuesInGrid(grid));
             return GridFunctions.SquareSum(grid);
-
-            //int[] snake = new int[]
-            //{
-            //    0, 1, 2, 3, 7, 6, 5, 4, 8, 9, 10, 11
-            //};
-
-            //ulong score = 0;
-            //for (int i = 0; i < snake.Length - 1; i++)
-            //{
-            //    if (grid[snake[i]] < grid[snake[i + 1]])
-            //    {
-            //        return score;
-            //    }
-
-            //    score += (ulong)(1 << grid[snake[i]]) * (ulong)(1 << grid[snake[i]]);
-            //}
-
-            //return score;
         }
     }
 }
